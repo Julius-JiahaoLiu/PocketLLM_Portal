@@ -6,9 +6,11 @@ import uuid
 import json
 
 from . import models, schemas
-from .database import get_db, redis_client
+from .database import get_db
+from .cache import CacheService
 
 router = APIRouter(prefix="/api/v1")
+cache_service = CacheService()
 
 @router.get("/health")
 def health():
@@ -22,10 +24,8 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # 1. Check Redis cache (Simple caching strategy: key = prompt)
-    # In a real app, you'd likely cache based on (session_context + prompt) or similar
-    cache_key = f"chat:{request.prompt}"
-    cached_response = redis_client.get(cache_key)
+    # 1. Check Redis cache
+    cached_response = cache_service.get(request.session_id, request.prompt)
     
     if cached_response:
         # If found, we still need to save the interaction to DB to keep history
@@ -75,7 +75,7 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
     db.refresh(assistant_msg)
 
     # 3. Cache the response
-    redis_client.setex(cache_key, 3600, generated_content) # Cache for 1 hour
+    cache_service.set(request.session_id, request.prompt, generated_content, 3600) # cached for 1 hour
 
     return schemas.ChatResponse(
         message_id=assistant_msg.id,
@@ -158,20 +158,10 @@ def search_messages(session_id: uuid.UUID, q: str, db: Session = Depends(get_db)
     # Using Postgres full-text search
     # Note: This requires the index we added in init.sql
     # to_tsvector('english', content) @@ plainto_tsquery('english', :q)
+    if not q or not q.strip():
+        return schemas.SearchResponse(results=[])
     
-    query = text("""
-        SELECT * FROM messages 
-        WHERE session_id = :session_id 
-        AND to_tsvector('english', content) @@ plainto_tsquery('english', :q)
-    """)
-    
-    results = db.execute(query, {"session_id": session_id, "q": q}).fetchall()
-    
-    # Convert raw results to Pydantic models
-    # We need to map the result rows to the MessageResponse schema
-    # Since we are using raw SQL, we get tuples/rows, not ORM objects directly unless we map them.
-    # A simpler way with ORM:
-    
+    # ORM query using the same expression as the GIN index so Postgres can use it
     results_orm = db.query(models.Message).filter(
         models.Message.session_id == session_id,
         text("to_tsvector('english', content) @@ plainto_tsquery('english', :q)")

@@ -159,23 +159,18 @@ If you want to work on the code with IDE support (autocompletion, linting), set 
 
 **Note**: You do NOT need this to run the app with Docker. Docker manages its own dependencies.
 
-
-
-
-
-
-
-
 11.19
 ——————————————————————————————————————————————————————————————————————————
+
 # PocketLLM Portal - Prescriptive Architecture Documentation
 
 **Course**: USC CSCI 578 - Software Architectures, Fall 2025  
-**Date**: 
+**Date**:
 
 ---
 
 ## Table of Contents
+
 1. [Summary](#1-summary)
 2. [Architecture Overview](#2-architecture-overview)
 3. [Scope](#3-scope)
@@ -193,6 +188,7 @@ If you want to work on the code with IDE support (autocompletion, linting), set 
 PocketLLM Portal is a lightweight, browser-based LLM application. This prescriptive architecture document defines the complete system design ：）
 
 **Core Capabilities Included in MVP**:
+
 - User chat interface with LLM interaction
 - Session management (create, list, view, delete)
 - Message actions (rate, pin)
@@ -201,6 +197,7 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 - Basic telemetry and logging (can do later)
 
 **Architecture Selection**: We selected a **Layered Client-Server architecture** combined with elements of **Microservices** patterns, utilizing:
+
 - React frontend (presentation layer)
 - FastAPI backend (business logic layer)
 - PostgreSQL (data persistence layer)
@@ -215,6 +212,7 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 **Primary Style**: **Layered Client-Server** with **Cache-Aware** design
 
 **Rationale**:
+
 1. **Clear Separation of Concerns**: Each layer has distinct responsibilities, making the system maintainable and testable
 2. **Resource Efficiency**: Caching layer (Redis)(cache latency ≤500ms)(cache hit rate ≥40%)
 3. **Scalability**: Stateless backend allows horizontal scaling if needed in future
@@ -222,11 +220,13 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 5. **CPU-Only Constraint**: FastAPI's async capabilities maximize throughput on limited CPU resources
 
 **Tradeoffs Accepted**:
-- **Pro**: ?
-- **Con**: Synchronous request-response may not be optimal for very long LLM generations
+
+- **Pro**: Simplicity and Capability to meet all functional requirements
+- **Con**: Synchronous request-response may not be optimal for very long LLM generations (I thought all commercial LLM Portal provide sync response, are't they?)
 - **Con**: Single backend instance creates a potential bottleneck (mitigated by keeping backend stateless)
 
 **Alternative Considered**: Event-driven architecture with message queues was considered but rejected due to:
+
 - Higher complexity
 - Overkill for current scale (8 concurrent users per NFR11)
 - Implementation time constraints (2.5 wks)
@@ -237,15 +237,15 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 
 ### 3.1 Included Features (MVP)
 
-| Feature ID | Component | Description | Priority |
-|------------|-----------|-------------|----------|
-| FR1 | Chat UI | Send prompt, receive response | MUST |
-| FR2 | Session Manager | Create, list, switch, delete sessions | MUST |
-| FR11 | Cache Service | Cache prompt-response pairs | MUST |
-| FR12 | Session Service | Persist chat history | MUST |
-| FR13 | Logging Service | Log metadata (timestamp, latency, cache hit/miss) | SHOULD |
-| Partial FR4 | Template Service | Basic prompt templates (3-5 predefined) | SHOULD |
-| Partial FR14 | Telemetry | Basic metrics (request count, cache hit rate) | SHOULD |
+| Feature ID   | Component        | Description                                       | Priority |
+| ------------ | ---------------- | ------------------------------------------------- | -------- |
+| FR1          | Chat UI          | Send prompt, receive response                     | MUST     |
+| FR2          | Session Manager  | Create, list, switch, delete sessions             | MUST     |
+| FR11         | Cache Service    | Cache prompt-response pairs                       | MUST     |
+| FR12         | Session Service  | Persist chat history                              | MUST     |
+| FR13         | Logging Service  | Log metadata (timestamp, latency, cache hit/miss) | SHOULD   |
+| Partial FR4  | Template Service | Basic prompt templates (3-5 predefined)           | SHOULD   |
+| Partial FR14 | Telemetry        | Basic metrics (request count, cache hit rate)     | SHOULD   |
 
 ### 3.2 Excluded Features (Future Work)
 
@@ -259,16 +259,16 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 
 ### 3.3 Non-Functional Requirements Coverage
 
-| NFR ID | Requirement | Implementation Strategy |
-|--------|-------------|------------------------|
-| NFR1 | Cache latency ≤500ms | Redis in-memory cache |
-| NFR2 | Cold latency ≤10s | Lightweight model (1-3B parameters) |
-| NFR6 | Reboot ≤10s | Docker containerization |
-| NFR10 | Logging metadata | Structured logging in backend |
-| NFR11 | Support ≥8 concurrent sessions | FastAPI async handlers |
-| NFR12 | Cache hit rate ≥40% | Semantic similarity matching |
-| NFR13 | UI learnability ≤30s | Intuitive chat interface |
-| NFR17 | Dockerized, ready in ≤60s | Docker Compose orchestration |
+| NFR ID | Requirement                    | Implementation Strategy             |
+| ------ | ------------------------------ | ----------------------------------- | ------------------------------------------------ |
+| NFR1   | Cache latency ≤500ms           | Redis in-memory cache               |
+| NFR2   | Cold latency ≤10s              | Lightweight model (1-3B parameters) | (Do we need to embed model into implementation?) |
+| NFR6   | Reboot ≤10s                    | Docker containerization             |
+| NFR10  | Logging metadata               | Structured logging in backend       |
+| NFR11  | Support ≥8 concurrent sessions | FastAPI async handlers              |
+| NFR12  | Cache hit rate ≥40%            | Semantic similarity matching        |
+| NFR13  | UI learnability ≤30s           | Intuitive chat interface            |
+| NFR17  | Dockerized, ready in ≤60s      | Docker Compose orchestration        |
 
 ---
 
@@ -353,6 +353,7 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 ```
 
 **Use Cases**:
+
 - **UC1**: Create Session
 - **UC2**: Send Prompt & Receive Response (includes cache check, extends to LLM generation on cache miss)
 - **UC3**: View Session History
@@ -422,6 +423,7 @@ PocketLLM Portal is a lightweight, browser-based LLM application. This prescript
 ```
 
 **Components**:
+
 1. **Frontend Components**: UI rendering only, no business logic
 2. **API Gateway**: Request routing, validation, error handling
 3. **Service Layer**: Core business logic, orchestrates data flow
@@ -440,6 +442,7 @@ work in progress :)
 ```
 
 **Key Steps**:
+
 1. User types prompt in ChatWindow
 2. Frontend sends POST to `/api/v1/chat` with `{session_id, prompt}`
 3. API Gateway validates request
@@ -607,6 +610,7 @@ work in progress
 ```
 
 **Deployment Specifications**:
+
 - **Resource Limits**: Each container limited to ensure total ≤ 4 vCPU, 16GB RAM
 - **Network**: Internal bridge network for container-to-container communication
 - **Volumes**: Persist PostgreSQL data and logs across restarts
@@ -618,7 +622,8 @@ work in progress
 
 ### 6.1 Frontend Components (React)
 
-**File Structure**: (flexible 你可以自己改 与function对齐就行)
+**File Structure**: (flexible 你可以自己改 与 function 对齐就行)
+
 ```
 frontend/src/
 ├── components/
@@ -635,15 +640,18 @@ frontend/src/
 ```
 
 #### 6.1.1 SessionList Component
+
 **Location**: `src/components/SessionList.tsx`
 
 **Responsibilities**:
+
 - Fetches and displays all user sessions
 - Provides "New Chat" button to create sessions
 - Allows deleting sessions with confirmation
 - Clicking a session navigates to chat window
 
 **Key API Calls**:
+
 - GET `/api/v1/sessions` - Load sessions on mount
 - POST `/api/v1/sessions` - Create new session
 - DELETE `/api/v1/sessions/{id}` - Delete session
@@ -651,51 +659,61 @@ frontend/src/
 ---
 
 #### 6.1.2 ChatWindow Component
+
 **Location**: `src/components/ChatWindow.tsx`
 
 **Responsibilities**:
+
 - Displays message history for a session
 - Provides input box to send prompts
 - Shows loading indicator during generation
 - Displays "cached" badge for cached responses
 
 **Key API Calls**:
+
 - GET `/api/v1/sessions/{id}` - Load session and messages
 - POST `/api/v1/chat` - Send prompt and get response
 
 ---
 
 #### 6.1.3 MessageBubble Component
+
 **Location**: `src/components/MessageBubble.tsx`
 
 **Responsibilities**:
+
 - Renders user or assistant message with appropriate styling
 - Shows timestamp and cached indicator
 - Provides thumbs up/down buttons (assistant messages only)
 - Provides pin/bookmark button
 
 **Key API Calls**:
+
 - POST `/api/v1/messages/{id}/rate` - Rate message
 - POST `/api/v1/messages/{id}/pin` - Toggle pin
 
 ---
 
 #### 6.1.4 SearchBar Component
+
 **Location**: `src/components/SearchBar.tsx`
 
 **Responsibilities**:
+
 - Provides search input for keyword search
 - Displays search results in a list
 - Allows clearing search to return to normal view
 
 **Key API Calls**:
+
 - GET `/api/v1/sessions/{id}/search?q={keyword}` - Search messages
 
 ---
 
 ### 6.2 Backend Services
 
-**File Structure**: （下面的function定义也是可以按实际的更改）
+**File Structure**: （下面的 function 定义也是可以按实际的更改）
+
 ```
 backend/app/
 ├── routers/
@@ -716,9 +734,11 @@ backend/app/
 ```
 
 #### 6.2.1 ChatService
+
 **Location**: `app/services/chat_service.py`
 
 **Responsibilities**:
+
 1. Check cache for prompt response
 2. If cache miss: call LLM, save to DB, cache result
 3. If cache hit: return cached response
@@ -726,6 +746,7 @@ backend/app/
 5. Update telemetry (先可以不用)
 
 **Key Method**:
+
 ```python
 async def generate_response(
     session_id: UUID,
@@ -735,6 +756,7 @@ async def generate_response(
 ```
 
 **Flow**:
+
 ```
 Check Cache → [Hit] Return cached
            → [Miss] Call LLM → Save to DB → Cache → Log → Return
@@ -743,15 +765,18 @@ Check Cache → [Hit] Return cached
 ---
 
 #### 6.2.2 CacheService
+
 **Location**: `app/services/cache_service.py`
 
 **Responsibilities**:
+
 - Generate cache keys from `session_id + prompt_hash`
 - Store/retrieve responses in Redis
 - Track cache hit statistics
 - Set TTL of 1 hour for cache entries
 
 **Key Methods**:
+
 ```python
 async def get(session_id: UUID, prompt: str) -> Optional[Dict]
 async def set(session_id: UUID, prompt: str, response: Dict) -> bool
@@ -763,15 +788,18 @@ async def get_stats() -> Dict  # Cache hit rate, total hits, etc.
 ---
 
 #### 6.2.3 SessionService
+
 **Location**: `app/services/session_service.py`
 
 **Responsibilities**:
+
 - CRUD operations for sessions and messages
 - Fetch message history with pagination
 - Full-text search in messages
 - Update session timestamps on new messages
 
 **Key Methods**:
+
 ```python
 async def create_session(user_id: UUID, title: str) -> Session
 async def get_sessions(user_id: UUID) -> List[Session]
@@ -784,36 +812,43 @@ async def search_messages(session_id: UUID, query: str) -> List[Message]
 ---
 
 #### 6.2.4 LLMAdapter
+
 **Location**: `app/services/llm_adapter.py`
 
 **Responsibilities** (MVP - Stub Implementation):
+
 - Returns canned responses for testing
 - Simulates 0.5s processing delay
 - Formats context from previous messages
 - **TODO**: Replace with real LLM in production ：）
 
 **Key Method**:
+
 ```python
 async def generate(prompt: str, context: List[Message]) -> str
 ```
 
 **Stub Response Format**:
+
 ```
-"[STUB] This is a generated response to: '{prompt}'. 
+"[STUB] This is a generated response to: '{prompt}'.
 In production, this would call {model_name}."
 ```
 
 ---
 
-#### 6.2.5 LoggingService （log 和 telemetry可以先不做）
+#### 6.2.5 LoggingService （log 和 telemetry 可以先不做）
+
 **Location**: `app/services/logging_service.py`
 
 **Responsibilities**:
+
 - Log each request with metadata (request_id, latency, cache_hit, etc.)
 - Log errors with context
 - Output in JSON format for easy parsing
 
 **Key Method**:
+
 ```python
 def log_request(
     request_id: UUID,
@@ -825,6 +860,7 @@ def log_request(
 ```
 
 **Log Format Example**:
+
 ```json
 {
   "request_id": "...",
@@ -838,15 +874,18 @@ def log_request(
 ---
 
 #### 6.2.6 TelemetryService
+
 **Location**: `app/services/telemetry_service.py`
 
 **Responsibilities**:
+
 - Track total requests, cache hits/misses
 - Record latency for all requests
 - Calculate p95 latency and cache hit rate
 - Provide metrics via `/api/v1/metrics` endpoint
 
 **Key Methods**:
+
 ```python
 async def increment_cache_hit()
 async def increment_cache_miss()
@@ -855,6 +894,7 @@ async def get_metrics() -> Dict
 ```
 
 **Metrics Returned**:
+
 - total_requests
 - cache_hit_rate
 - avg_latency_ms
@@ -863,6 +903,7 @@ async def get_metrics() -> Dict
 - uptime_seconds
 
 ---
+
 ## 7. Data Model
 
 ### 7.1 PostgreSQL Schema
@@ -870,28 +911,31 @@ async def get_metrics() -> Dict
 **File**: `backend/app/db/migrations/001_initial_schema.sql`
 
 #### users table
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | User identifier |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | User email |
-| password_hash | VARCHAR(255) | - | For future auth (MVP: unused) |
-| role | VARCHAR(20) | DEFAULT 'user' | 'user' or 'admin' |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation time |
+
+| Column        | Type         | Constraints                            | Notes                         |
+| ------------- | ------------ | -------------------------------------- | ----------------------------- |
+| id            | UUID         | PRIMARY KEY, DEFAULT gen_random_uuid() | User identifier               |
+| email         | VARCHAR(255) | UNIQUE, NOT NULL                       | User email                    |
+| password_hash | VARCHAR(255) | -                                      | For future auth (MVP: unused) |
+| role          | VARCHAR(20)  | DEFAULT 'user'                         | 'user' or 'admin'             |
+| created_at    | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP              | Creation time                 |
 
 **Indexes**: None needed for MVP (single default user)
 
 ---
 
 #### sessions table
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Session identifier |
-| user_id | UUID | FOREIGN KEY → users(id), NOT NULL | Owner |
-| title | VARCHAR(255) | NOT NULL, DEFAULT 'New Chat' | Session name |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation time |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last message time |
+
+| Column     | Type         | Constraints                            | Notes              |
+| ---------- | ------------ | -------------------------------------- | ------------------ |
+| id         | UUID         | PRIMARY KEY, DEFAULT gen_random_uuid() | Session identifier |
+| user_id    | UUID         | FOREIGN KEY → users(id), NOT NULL      | Owner              |
+| title      | VARCHAR(255) | NOT NULL, DEFAULT 'New Chat'           | Session name       |
+| created_at | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP              | Creation time      |
+| updated_at | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP              | Last message time  |
 
 **Indexes**:
+
 - `idx_sessions_user_id` on `user_id`
 - `idx_sessions_updated_at` on `updated_at DESC` (for sorting)
 
@@ -900,17 +944,19 @@ async def get_metrics() -> Dict
 ---
 
 #### messages table
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Message identifier |
-| session_id | UUID | FOREIGN KEY → sessions(id), NOT NULL | Parent session |
-| role | VARCHAR(20) | NOT NULL, CHECK ('user' OR 'assistant') | Message sender |
-| content | TEXT | NOT NULL | Message text |
-| rating | VARCHAR(10) | CHECK ('up', 'down', NULL) | User feedback |
-| pinned | BOOLEAN | DEFAULT FALSE | Bookmarked status |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Message time |
+
+| Column     | Type        | Constraints                             | Notes              |
+| ---------- | ----------- | --------------------------------------- | ------------------ |
+| id         | UUID        | PRIMARY KEY, DEFAULT gen_random_uuid()  | Message identifier |
+| session_id | UUID        | FOREIGN KEY → sessions(id), NOT NULL    | Parent session     |
+| role       | VARCHAR(20) | NOT NULL, CHECK ('user' OR 'assistant') | Message sender     |
+| content    | TEXT        | NOT NULL                                | Message text       |
+| rating     | VARCHAR(10) | CHECK ('up', 'down', NULL)              | User feedback      |
+| pinned     | BOOLEAN     | DEFAULT FALSE                           | Bookmarked status  |
+| created_at | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP               | Message time       |
 
 **Indexes**:
+
 - `idx_messages_session_id` on `session_id`
 - `idx_messages_created_at` on `created_at`
 - `idx_messages_pinned` on `pinned` WHERE `pinned = TRUE`
@@ -921,21 +967,26 @@ async def get_metrics() -> Dict
 ---
 
 #### Default Data （flexible 可以改）
+
 ```sql
 -- Insert default user for MVP (no authentication)
-INSERT INTO users (id, email, role) 
+INSERT INTO users (id, email, role)
 VALUES ('00000000-0000-0000-0000-000000000001', 'default@pocketllm.local', 'user');
 ```
 
 ---
+
 ### 7.2 Redis Data Structures （这个我没仔细看 生成的当参考可以自行看一下做的时候）
 
 #### Cache Entries
+
 **Key Format**: `cache:{session_id}:{prompt_hash}`
+
 - `prompt_hash`: First 16 chars of SHA256 hash of prompt text
 - **TTL**: 3600 seconds (1 hour)
 
 **Value** (JSON string):
+
 ```json
 {
   "message_id": "uuid",
@@ -944,6 +995,7 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'default@pocketllm.local', 'user
 ```
 
 **Example**:
+
 ```
 Key: cache:123e4567-e89b-12d3-a456-426614174000:abc123def456
 Value: {"message_id":"789...", "content":"Here is the answer..."}
@@ -952,13 +1004,16 @@ Value: {"message_id":"789...", "content":"Here is the answer..."}
 ---
 
 #### Cache Statistics
+
 **Key**: `cache_stats` (Redis Hash)
 
 **Fields**:
+
 - `{cache_key}:hits` → Integer (number of times this cache entry was hit)
 - `{cache_key}:cached_at` → Float (Unix timestamp when cached)
 
 **Example**:
+
 ```
 HGETALL cache_stats
 1) "cache:123...:abc:hits"
@@ -978,11 +1033,14 @@ users (1) ──< sessions (many)
 ```
 
 **Cascade Delete Rules**:
+
 - Delete user → Delete all their sessions → Delete all messages in those sessions
 - Delete session → Delete all messages in that session
 
 ---
-## 8. API Specifications 
+
+## 8. API Specifications
+
 (What Endpoints to Implement)
 
 **Base URL**: `http://localhost:8000/api/v1`
@@ -990,14 +1048,15 @@ All responses are JSON. Timestamps use ISO 8601 strings.
 
 ### 8.1 Chat
 
-* **POST `/chat`**
+- **POST `/chat`**
 
-  * Request:
+  - Request:
 
     ```json
     { "session_id": "uuid", "prompt": "string" }
     ```
-  * Response:
+
+  - Response:
 
     ```json
     {
@@ -1006,60 +1065,61 @@ All responses are JSON. Timestamps use ISO 8601 strings.
       "cached": true | false
     }
     ```
-  * Behavior:
 
-    * Check cache → return cached if found.
-    * Otherwise:
+  - Behavior:
 
-      * Load recent context from DB,
-      * Call `LLMAdapter`,
-      * Save user + assistant messages,
-      * Cache assistant response.
+    - Check cache → return cached if found.
+    - Otherwise:
+
+      - Load recent context from DB,
+      - Call `LLMAdapter`,
+      - Save user + assistant messages,
+      - Cache assistant response.
 
 ### 8.2 Sessions
 
-* **POST `/sessions`**
+- **POST `/sessions`**
   Create a new chat session.
 
-  * Request: `{ "title": "optional string" }`
-  * Response: `{ "session_id": "uuid" }`
+  - Request: `{ "title": "optional string" }`
+  - Response: `{ "session_id": "uuid" }`
 
-* **GET `/sessions`**
+- **GET `/sessions`**
   List all sessions for the (default) user.
 
-  * Response: array of `{ session_id, title, message_count, created_at, updated_at }`.
+  - Response: array of `{ session_id, title, message_count, created_at, updated_at }`.
 
-* **GET `/sessions/{id}`**
+- **GET `/sessions/{id}`**
   Get one session plus full message history (ordered by time).
 
-* **DELETE `/sessions/{id}`**
+- **DELETE `/sessions/{id}`**
   Delete a session and all its messages.
 
 ### 8.3 Messages
 
-* **GET `/messages/{id}`**
+- **GET `/messages/{id}`**
   Return one message’s full info.
 
-* **POST `/messages/{id}/rate`**
+- **POST `/messages/{id}/rate`**
 
-  * Request: `{ "rating": "up" | "down" }`
-  * Sets the rating for an **assistant** message.
+  - Request: `{ "rating": "up" | "down" }`
+  - Sets the rating for an **assistant** message.
 
-* **POST `/messages/{id}/pin`**
+- **POST `/messages/{id}/pin`**
 
-  * Request body optional (can be empty).
-  * If body omitted → toggle pin state.
-  * Response: `{ "message_id": "uuid", "pinned": true | false }`.
+  - Request body optional (can be empty).
+  - If body omitted → toggle pin state.
+  - Response: `{ "message_id": "uuid", "pinned": true | false }`.
 
 ### 8.4 Search
 
-* **GET `/sessions/{id}/search?q=keyword&limit=20`**
+- **GET `/sessions/{id}/search?q=keyword&limit=20`**
 
-  * Uses PostgreSQL full-text search on `messages.content`.
-  * Response: `{ query, session_id, results: [ {message_id, role, content, created_at} ], total_results }`.
-
+  - Uses PostgreSQL full-text search on `messages.content`.
+  - Response: `{ query, session_id, results: [ {message_id, role, content, created_at} ], total_results }`.
 
 ---
 
 ## 9. Technology Stack
---------------------------------------------------------------------------------
+
+---

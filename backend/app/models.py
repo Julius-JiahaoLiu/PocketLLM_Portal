@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 from .database import Base
+# Base.metadata is the collection of Table objects for that set of models (used by create_all, Alembic, etc).
 
 class User(Base):
     __tablename__ = "users"
