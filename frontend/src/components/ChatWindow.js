@@ -56,7 +56,9 @@ function ChatWindow({ sessionId }) {
     }
 
     useEffect(() => {
-        loadSession();
+        if (sessionId && sessionId !== "undefined") {
+            loadSession();
+        }
     }, [sessionId]);
 
     useEffect(() => {
@@ -65,7 +67,7 @@ function ChatWindow({ sessionId }) {
 
     async function handleSend() {
         const prompt = input.trim();
-        if (!prompt || sending) return;
+        if (!prompt || sending || !sessionId || sessionId === "undefined") return;
 
         setSending(true);
         setError(null);
@@ -151,6 +153,10 @@ function ChatWindow({ sessionId }) {
     async function handleSearch(query) {
         if (!query.trim()) {
             handleClearSearch();
+            return;
+        }
+        if (!sessionId || sessionId === "undefined") {
+            alert("Please select a session first");
             return;
         }
         setSearchLoading(true);

@@ -8,7 +8,7 @@ CREATE TABLE users (
 
 CREATE TABLE sessions (
     id UUID PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
+    user_id UUID,  -- 移除外键约束，支持任意 user_id
     title VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -26,3 +26,9 @@ CREATE TABLE messages (
 
 -- Create an index for full-text search on message content
 CREATE INDEX idx_messages_content_search ON messages USING GIN (to_tsvector('english', content));
+
+-- Insert a development user so the hard-coded DEFAULT_USER_ID exists in a fresh DB
+-- (Use ON CONFLICT DO NOTHING to avoid duplicate errors on re-run)
+INSERT INTO users (id, email, password_hash, role) VALUES
+('00000000-0000-0000-0000-000000000001', 'dev@example.com', 'nopass', 'user')
+ON CONFLICT (id) DO NOTHING;

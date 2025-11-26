@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchSessions, createSession, deleteSession } from "../api/sessions";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import UserInfo from "./UserInfo";
 
 function SessionList({ onSessionSelected }) {
     const [sessions, setSessions] = useState([]);
@@ -10,6 +11,7 @@ function SessionList({ onSessionSelected }) {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState(null);
     const location = useLocation();
+    const navigate = useNavigate();
 
     const currentSessionId = (() => {
         const parts = location.pathname.split("/");
@@ -46,7 +48,7 @@ function SessionList({ onSessionSelected }) {
             setCreating(true);
             const res = await createSession("New Chat");
             await loadSessions();
-            onSessionSelected(res.session_id);
+            onSessionSelected(res.id);
         } catch (e) {
             alert(e.message || "Failed to create session");
         } finally {
@@ -60,6 +62,10 @@ function SessionList({ onSessionSelected }) {
         if (!ok) return;
         try {
             await deleteSession(id);
+            // If the deleted session is currently active, navigate back to home
+            if (id === currentSessionId) {
+                navigate("/");
+            }
             await loadSessions();
         } catch (e2) {
             alert("Failed to delete session");
@@ -67,7 +73,7 @@ function SessionList({ onSessionSelected }) {
     }
 
     return (
-        <div style={{ padding: "12px" }}>
+        <div style={{ padding: "12px", display: "flex", flexDirection: "column", height: "100%" }}>
             <div
                 style={{
                     display: "flex",
@@ -95,18 +101,18 @@ function SessionList({ onSessionSelected }) {
                 <p style={{ color: "red", fontSize: "12px" }}>{error}</p>
             )}
 
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, flex: 1, overflowY: "auto" }}>
                 {sessions.map(s => (
                     <li
-                        key={s.session_id}
-                        onClick={() => onSessionSelected(s.session_id)}
+                        key={s.id}
+                        onClick={() => onSessionSelected(s.id)}
                         style={{
                             padding: "8px",
                             marginBottom: "4px",
                             borderRadius: "6px",
                             cursor: "pointer",
                             backgroundColor:
-                                s.session_id === currentSessionId
+                                s.id === currentSessionId
                                     ? "#e3f2fd"
                                     : "transparent",
                             display: "flex",
@@ -124,17 +130,9 @@ function SessionList({ onSessionSelected }) {
                             >
                                 {s.title || "Untitled"}
                             </div>
-                            <div
-                                style={{
-                                    fontSize: "11px",
-                                    color: "#666"
-                                }}
-                            >
-                                {s.message_count} messages
-                            </div>
                         </div>
                         <button
-                            onClick={e => handleDeleteSession(e, s.session_id)}
+                            onClick={e => handleDeleteSession(e, s.id)}
                             style={{
                                 fontSize: "11px",
                                 padding: "2px 6px",
@@ -151,6 +149,8 @@ function SessionList({ onSessionSelected }) {
                     </li>
                 )}
             </ul>
+
+            <UserInfo />
         </div>
     );
 }
