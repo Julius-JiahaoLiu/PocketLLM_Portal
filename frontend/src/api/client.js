@@ -1,7 +1,9 @@
 // src/api/client.js
 
-// 后端的完整地址，直接指向 docker 里的 FastAPI
-const API_BASE = "http://localhost:8000/api/v1";
+// 使用相对路径，由 nginx 代理转发到后端
+// 在 docker 中：nginx 会把 /api/* 代理到 backend:8000
+// 本地开发时：需要单独启动后端或配置代理
+const API_BASE = "/api/v1";
 
 async function handleResponse(res) {
     const text = await res.text();
