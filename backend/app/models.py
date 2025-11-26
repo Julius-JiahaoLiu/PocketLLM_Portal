@@ -16,7 +16,7 @@ class User(Base):
 class Session(Base):
     __tablename__ = "sessions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True))  # 移除外键约束，支持任意 user_id
     title = Column(String)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
