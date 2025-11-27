@@ -272,8 +272,8 @@ def rate_message(
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    if not (1 <= rating.rating <= 5):
-        raise HTTPException(status_code=400, detail="Invalid rating")
+    if not (rating.rating in ['up', 'down']):
+        raise HTTPException(status_code=400, detail="Invalid rating value")
 
     message.rating = rating.rating
     db.commit()

@@ -78,7 +78,7 @@ class RatingRequest(BaseModel):
     """
     Request body for rating a message.
     """
-    rating: int  # Expected values: 1–5
+    rating: str  # Expected values: 'up' 'down'
 
 
 class SearchResponse(BaseModel):
