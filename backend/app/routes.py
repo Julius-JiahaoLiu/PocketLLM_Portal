@@ -225,6 +225,31 @@ def get_session(session_id: uuid.UUID, db: Session = Depends(get_db)):
     return session
 
 
+@router.put("/sessions/{session_id}", response_model=schemas.SessionResponse)
+def update_session(
+    session_id: uuid.UUID,
+    update: schemas.SessionUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a session's title.
+    """
+    session = (
+        db.query(models.Session)
+        .filter(models.Session.id == session_id)
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if update.title is not None:
+        session.title = update.title
+    
+    db.commit()
+    db.refresh(session)
+    return session
+
+
 @router.delete("/sessions/{session_id}")
 def delete_session(session_id: uuid.UUID, db: Session = Depends(get_db)):
     """
@@ -283,7 +308,8 @@ def create_message_for_session(
     db: Session = Depends(get_db),
 ):
     """
-    Create a new user message under a given session.
+    Create a new message under a given session.
+    Can be used to import messages with any role.
     """
     session = (
         db.query(models.Session)
@@ -293,9 +319,13 @@ def create_message_for_session(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Validate role
+    if body.role not in ["user", "assistant"]:
+        raise HTTPException(status_code=400, detail="Role must be 'user' or 'assistant'")
+
     msg = models.Message(
         session_id=session_id,
-        role="user",
+        role=body.role,
         content=body.content,
     )
     db.add(msg)
@@ -376,6 +406,24 @@ def pin_message(message_id: uuid.UUID, db: Session = Depends(get_db)):
     return {"status": "toggled", "pinned": message.pinned}
 
 
+@router.post("/messages/{message_id}/delete")
+def delete_message(message_id: uuid.UUID, db: Session = Depends(get_db)):
+    """
+    Delete a message by its ID.
+    """
+    message = (
+        db.query(models.Message)
+        .filter(models.Message.id == message_id)
+        .first()
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    db.delete(message)
+    db.commit()
+    return {"status": "deleted", "id": str(message_id)}
+
+
 # ======================
 # 4. Search
 # ======================
@@ -387,27 +435,26 @@ def search_messages(
     session_id: uuid.UUID, q: str, db: Session = Depends(get_db)
 ):
     """
-    Search messages within a session using PostgreSQL full-text search on `content`.
+    Search messages within a session for exact keyword matches.
+    Searches both user and assistant messages.
     Returns a list of matching Message objects.
     """
     if not q or not q.strip():
         # Empty or whitespace-only query returns no results.
         return schemas.SearchResponse(results=[])
 
+    # Use case-insensitive LIKE for exact keyword matching
+    # This will match the keyword anywhere in the content
+    search_pattern = f"%{q.strip()}%"
+    
     results_orm = (
         db.query(models.Message)
         .filter(
             models.Message.session_id == session_id,
-            text(
-                "to_tsvector('english', content) "
-                "@@ plainto_tsquery('english', :q)"
-            ),
+            models.Message.content.ilike(search_pattern)
         )
-        .params(q=q)
+        .order_by(models.Message.created_at.asc())
         .all()
     )
 
-    # Wrap ORM results in the response model so FastAPI/Pydantic
-    # can validate/serialize using the MessageResponse (which
-    # is configured to read from attributes).
     return schemas.SearchResponse(results=results_orm)

@@ -1,6 +1,6 @@
 // src/api/sessions.js
 
-import { apiGet, apiPost, apiDelete } from "./client";
+import { apiGet, apiPost, apiDelete, apiPut } from "./client";
 import { getUserId } from "../utils/userManager";
 
 // 获取所有会话
@@ -25,6 +25,13 @@ export async function createSession(title) {
 // 获取会话详情
 export async function fetchSessionDetail(id) {
     return apiGet(`/sessions/${id}`);
+}
+
+// 更新会话标题
+export async function updateSession(id, title) {
+    const body = { title };
+    // PUT /sessions/{id}
+    return apiPut(`/sessions/${id}`, body);
 }
 
 // 删除会话

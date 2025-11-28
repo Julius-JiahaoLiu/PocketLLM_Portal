@@ -54,6 +54,15 @@ export async function apiPost(path, body) {
     return handleResponse(res);
 }
 
+export async function apiPut(path, body) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: body ? JSON.stringify(body) : undefined
+    });
+    return handleResponse(res);
+}
+
 export async function apiDelete(path) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "DELETE",

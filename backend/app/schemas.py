@@ -30,6 +30,13 @@ class SessionCreate(BaseModel):
     title: Optional[str] = "New Session"
 
 
+class SessionUpdate(BaseModel):
+    """
+    Request body for updating a session.
+    """
+    title: Optional[str] = None
+
+
 class SessionResponse(BaseModel):
     """
     Basic session information returned in list and creation responses.
@@ -44,10 +51,10 @@ class SessionResponse(BaseModel):
 
 class MessageCreate(BaseModel):
     """
-    Request body for creating a new user message under a session.
+    Request body for creating a new message under a session.
     """
-    user_id: UUID
     content: str
+    role: Optional[str] = "user"  # "user" or "assistant"
 
 
 class MessageResponse(BaseModel):

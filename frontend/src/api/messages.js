@@ -19,3 +19,11 @@ export async function searchMessages(sessionId, query, limit = 20) {
     const encoded = encodeURIComponent(query);
     return apiGet(`/sessions/${sessionId}/search?q=${encoded}&limit=${limit}`);
 }
+
+export async function deleteMessage(id) {
+    return apiPost(`/messages/${id}/delete`);
+}
+
+export async function createMessage(sessionId, content, role = "user") {
+    return apiPost(`/sessions/${sessionId}/messages`, { content, role });
+}
