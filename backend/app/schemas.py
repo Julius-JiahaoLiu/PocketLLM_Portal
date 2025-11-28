@@ -86,3 +86,29 @@ class SearchResponse(BaseModel):
     Response structure for search results.
     """
     results: List[MessageResponse]
+
+
+class RegisterRequest(BaseModel):
+    """
+    Request body for user registration.
+    """
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    """
+    Request body for user login.
+    """
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    """
+    Response returned after successful registration or login.
+    """
+    user_id: str
+    email: str
+    token: str
+

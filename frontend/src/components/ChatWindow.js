@@ -15,7 +15,7 @@ function ChatWindow({ sessionId }) {
     const [sending, setSending] = useState(false);
     const [error, setError] = useState(null);
 
-    const [mode, setMode] = useState("normal"); // "normal" | "search"
+    const [mode, setMode] = useState("normal"); // "normal" | "search" | "pinned" | "rated"
     const [searchResults, setSearchResults] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchLoading, setSearchLoading] = useState(false);
@@ -150,6 +150,37 @@ function ChatWindow({ sessionId }) {
         }
     }
 
+    function handleClearSearch() {
+        setMode("normal");
+        setSearchResults([]);
+        setSearchQuery("");
+    }
+
+    function getFilteredMessages() {
+        if (mode === "search") {
+            return searchResults;
+        } else if (mode === "pinned") {
+            return messages.filter(m => m.pinned);
+        } else if (mode === "rated") {
+            return messages.filter(m => m.rating);
+        }
+        return messages;
+    }
+
+    function handleShowPinned() {
+        setMode("pinned");
+    }
+
+    function handleShowRated() {
+        setMode("rated");
+    }
+
+    function handleShowAll() {
+        setMode("normal");
+        setSearchResults([]);
+        setSearchQuery("");
+    }
+
     async function handleSearch(query) {
         if (!query.trim()) {
             handleClearSearch();
@@ -172,20 +203,21 @@ function ChatWindow({ sessionId }) {
         }
     }
 
-    function handleClearSearch() {
-        setMode("normal");
-        setSearchResults([]);
-        setSearchQuery("");
-    }
-
     function renderMessages() {
-        const list = mode === "normal" ? messages : searchResults;
+        const list = getFilteredMessages();
+        
         if (list.length === 0) {
+            let emptyMessage = "No messages yet. Say something to start the chat.";
+            if (mode === "search") {
+                emptyMessage = "No messages match your search.";
+            } else if (mode === "pinned") {
+                emptyMessage = "No pinned messages.";
+            } else if (mode === "rated") {
+                emptyMessage = "No rated messages.";
+            }
             return (
                 <p style={{ fontSize: "13px", color: "#777" }}>
-                    {mode === "normal"
-                        ? "No messages yet. Say something to start the chat."
-                        : "No messages match your search."}
+                    {emptyMessage}
                 </p>
             );
         }
@@ -256,6 +288,53 @@ function ChatWindow({ sessionId }) {
                     isSearching={searchLoading}
                     hasActiveQuery={mode === "search"}
                 />
+                <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
+                    <button
+                        onClick={handleShowAll}
+                        disabled={loadingSession}
+                        style={{
+                            padding: "4px 8px",
+                            fontSize: "12px",
+                            backgroundColor: mode === "normal" ? "#1976d2" : "#e0e0e0",
+                            color: mode === "normal" ? "#fff" : "#333",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer"
+                        }}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={handleShowPinned}
+                        disabled={loadingSession}
+                        style={{
+                            padding: "4px 8px",
+                            fontSize: "12px",
+                            backgroundColor: mode === "pinned" ? "#ff9800" : "#e0e0e0",
+                            color: mode === "pinned" ? "#fff" : "#333",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer"
+                        }}
+                    >
+                        📌 Pinned
+                    </button>
+                    <button
+                        onClick={handleShowRated}
+                        disabled={loadingSession}
+                        style={{
+                            padding: "4px 8px",
+                            fontSize: "12px",
+                            backgroundColor: mode === "rated" ? "#4caf50" : "#e0e0e0",
+                            color: mode === "rated" ? "#fff" : "#333",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer"
+                        }}
+                    >
+                        ⭐ Rated
+                    </button>
+                </div>
             </div>
 
             <div

@@ -8,6 +8,7 @@ import json
 from . import models, schemas
 from .database import get_db
 from .cache import CacheService
+from .auth import hash_password, verify_password, create_token, verify_token
 
 router = APIRouter(prefix="/api/v1")
 cache_service = CacheService()
@@ -19,6 +20,69 @@ def health():
     Simple health check endpoint.
     """
     return {"status": "ok"}
+
+
+# ============ Auth Endpoints ============
+
+@router.post("/auth/register", response_model=schemas.AuthResponse)
+def register(req: schemas.RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Register a new user.
+    Email must be unique.
+    """
+    # 检查邮箱是否已存在
+    existing = db.query(models.User).filter(models.User.email == req.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # 创建新用户
+    user_id = str(uuid.uuid4())
+    hashed_pwd = hash_password(req.password)
+    
+    new_user = models.User(
+        id=uuid.UUID(user_id),
+        email=req.email,
+        password_hash=hashed_pwd,
+        role="user"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    # 生成 token
+    token = create_token(user_id)
+    
+    return schemas.AuthResponse(
+        user_id=user_id,
+        email=new_user.email,
+        token=token
+    )
+
+
+@router.post("/auth/login", response_model=schemas.AuthResponse)
+def login(req: schemas.LoginRequest, db: Session = Depends(get_db)):
+    """
+    Login with email and password.
+    Returns JWT token if successful.
+    """
+    # 查找用户
+    user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 验证密码
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 生成 token
+    token = create_token(str(user.id))
+    
+    return schemas.AuthResponse(
+        user_id=str(user.id),
+        email=user.email,
+        token=token
+    )
+
 
 
 # ======================

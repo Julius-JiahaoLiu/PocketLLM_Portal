@@ -1,18 +1,14 @@
 // src/components/UserInfo.js
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { getUserId, getUserEmail, setUserEmail, clearUser } from "../utils/userManager";
+import { getUserEmail, setUserEmail } from "../utils/userManager";
 
 export default function UserInfo() {
-    const navigate = useNavigate();
-    const [userId, setUserId] = useState("");
     const [email, setEmail] = useState("");
     const [showDetails, setShowDetails] = useState(false);
     const [tempEmail, setTempEmail] = useState("");
 
     useEffect(() => {
-        setUserId(getUserId());
         const savedEmail = getUserEmail();
         setEmail(savedEmail || "");
         setTempEmail(savedEmail || "");
@@ -24,14 +20,6 @@ export default function UserInfo() {
             setEmail(tempEmail);
         }
         setShowDetails(false);
-    }
-
-    function handleLogout() {
-        if (window.confirm("Clear all user data? This will reset your user ID and email.")) {
-            clearUser();
-            navigate("/");
-            window.location.reload();
-        }
     }
 
     return (
@@ -56,7 +44,7 @@ export default function UserInfo() {
                         color: "#666"
                     }}
                 >
-                    👤 {email || "User"} ({userId.slice(0, 8)}...)
+                    👤 {email || "User"}
                 </button>
             ) : (
                 <div>
@@ -77,9 +65,6 @@ export default function UserInfo() {
                                 boxSizing: "border-box"
                             }}
                         />
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>
-                        Your ID: {userId}
                     </div>
                     <div style={{ display: "flex", gap: "4px" }}>
                         <button
@@ -112,24 +97,10 @@ export default function UserInfo() {
                         >
                             Close
                         </button>
-                        <button
-                            onClick={handleLogout}
-                            style={{
-                                flex: 1,
-                                padding: "4px",
-                                backgroundColor: "#f44336",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "11px"
-                            }}
-                        >
-                            Logout
-                        </button>
                     </div>
                 </div>
             )}
         </div>
     );
 }
+
