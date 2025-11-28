@@ -58,7 +58,7 @@ class MessageResponse(BaseModel):
     id: UUID
     role: str
     content: str
-    rating: Optional[int] = None  # 1–5 or None
+    rating: Optional[str] = None  # "up", "down" or None
     pinned: bool
     created_at: datetime
 
@@ -78,7 +78,7 @@ class RatingRequest(BaseModel):
     """
     Request body for rating a message.
     """
-    rating: int  # Expected values: 1–5
+    rating: str  # Expected values: "up" or "down"
 
 
 class SearchResponse(BaseModel):

@@ -336,8 +336,8 @@ def rate_message(
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    if not (1 <= rating.rating <= 5):
-        raise HTTPException(status_code=400, detail="Invalid rating")
+    if rating.rating not in ["up", "down"]:
+        raise HTTPException(status_code=400, detail="Invalid rating. Use 'up' or 'down'")
 
     message.rating = rating.rating
     db.commit()
@@ -370,7 +370,7 @@ def pin_message(message_id: uuid.UUID, db: Session = Depends(get_db)):
 # ======================
 @router.get(
     "/sessions/{session_id}/search",
-    response_model=List[schemas.MessageResponse],
+    response_model=schemas.SearchResponse,
 )
 def search_messages(
     session_id: uuid.UUID, q: str, db: Session = Depends(get_db)
@@ -381,7 +381,7 @@ def search_messages(
     """
     if not q or not q.strip():
         # Empty or whitespace-only query returns no results.
-        return []
+        return schemas.SearchResponse(results=[])
 
     results_orm = (
         db.query(models.Message)
@@ -396,4 +396,7 @@ def search_messages(
         .all()
     )
 
-    return results_orm
+    # Wrap ORM results in the response model so FastAPI/Pydantic
+    # can validate/serialize using the MessageResponse (which
+    # is configured to read from attributes).
+    return schemas.SearchResponse(results=results_orm)
