@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 from datetime import datetime
 
@@ -77,8 +77,10 @@ class SessionDetail(SessionResponse):
 class RatingRequest(BaseModel):
     """
     Request body for rating a message.
+    Accepts either an integer score (1-5) for backward compatibility,
+    or a string value 'up'/'down' used by the frontend.
     """
-    rating: str  # Expected values: "up" or "down"
+    rating: Union[int, str]
 
 
 class SearchResponse(BaseModel):
