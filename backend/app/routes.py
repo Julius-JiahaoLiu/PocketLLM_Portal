@@ -336,10 +336,21 @@ def rate_message(
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    if rating.rating not in ["up", "down"]:
-        raise HTTPException(status_code=400, detail="Invalid rating. Use 'up' or 'down'")
+    # Support both numeric (1-5) and string ('up'/'down') ratings for compatibility.
+    val = rating.rating
+    if isinstance(val, int):
+        if not (1 <= val <= 5):
+            raise HTTPException(status_code=400, detail="Invalid numeric rating. Must be 1-5")
+        # Map numeric scale to 'up'/'down' for storage (>=4 => up, <=2 => down, 3 => up)
+        mapped = 'up' if val >= 3 else 'down'
+    elif isinstance(val, str):
+        if val not in ['up', 'down']:
+            raise HTTPException(status_code=400, detail="Invalid rating. Use 'up' or 'down'")
+        mapped = val
+    else:
+        raise HTTPException(status_code=400, detail="Invalid rating type")
 
-    message.rating = rating.rating
+    message.rating = mapped
     db.commit()
     db.refresh(message)
 
