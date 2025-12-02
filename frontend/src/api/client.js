@@ -1,5 +1,7 @@
 // src/api/client.js
 
+import { getToken } from "../utils/userManager";
+
 // 使用相对路径，由 nginx 代理转发到后端
 // 在 docker 中：nginx 会把 /api/* 代理到 backend:8000
 // 本地开发时：需要单独启动后端或配置代理
@@ -24,12 +26,21 @@ async function handleResponse(res) {
     }
 }
 
+function getHeaders() {
+    const headers = {
+        "Content-Type": "application/json"
+    };
+    const token = getToken();
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
 export async function apiGet(path) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        }
+        headers: getHeaders()
     });
     return handleResponse(res);
 }
@@ -37,9 +48,16 @@ export async function apiGet(path) {
 export async function apiPost(path, body) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: getHeaders(),
+        body: body ? JSON.stringify(body) : undefined
+    });
+    return handleResponse(res);
+}
+
+export async function apiPut(path, body) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        method: "PUT",
+        headers: getHeaders(),
         body: body ? JSON.stringify(body) : undefined
     });
     return handleResponse(res);
@@ -48,9 +66,7 @@ export async function apiPost(path, body) {
 export async function apiDelete(path) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "DELETE",
-        headers: {
-            "Content-Type": "application/json"
-        }
+        headers: getHeaders()
     });
     return handleResponse(res);
 }

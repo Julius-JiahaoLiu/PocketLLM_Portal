@@ -124,5 +124,7 @@ def test_message_rate_pin_and_search(
         params={"q": "fastapi"},
     )
     assert resp_search.status_code == 200
-    results = resp_search.json()
+    data = resp_search.json()
+    # Search endpoint returns {"results": [...]}
+    results = data.get("results", [])
     assert any("fastapi" in m["content"] for m in results)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 from datetime import datetime
 
@@ -30,6 +30,13 @@ class SessionCreate(BaseModel):
     title: Optional[str] = "New Session"
 
 
+class SessionUpdate(BaseModel):
+    """
+    Request body for updating a session.
+    """
+    title: Optional[str] = None
+
+
 class SessionResponse(BaseModel):
     """
     Basic session information returned in list and creation responses.
@@ -44,10 +51,10 @@ class SessionResponse(BaseModel):
 
 class MessageCreate(BaseModel):
     """
-    Request body for creating a new user message under a session.
+    Request body for creating a new message under a session.
     """
-    user_id: UUID
     content: str
+    role: Optional[str] = "user"  # "user" or "assistant"
 
 
 class MessageResponse(BaseModel):
@@ -58,7 +65,7 @@ class MessageResponse(BaseModel):
     id: UUID
     role: str
     content: str
-    rating: Optional[int] = None  # 1–5 or None
+    rating: Optional[str] = None  # "up", "down" or None
     pinned: bool
     created_at: datetime
 
@@ -77,8 +84,10 @@ class SessionDetail(SessionResponse):
 class RatingRequest(BaseModel):
     """
     Request body for rating a message.
+    Accepts either an integer score (1-5) for backward compatibility,
+    or a string value 'up'/'down' used by the frontend.
     """
-    rating: str  # Expected values: 'up' 'down'
+    rating: Union[int, str]
 
 
 class SearchResponse(BaseModel):
@@ -86,3 +95,29 @@ class SearchResponse(BaseModel):
     Response structure for search results.
     """
     results: List[MessageResponse]
+
+
+class RegisterRequest(BaseModel):
+    """
+    Request body for user registration.
+    """
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    """
+    Request body for user login.
+    """
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    """
+    Response returned after successful registration or login.
+    """
+    user_id: str
+    email: str
+    token: str
+

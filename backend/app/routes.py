@@ -8,6 +8,7 @@ import json
 from . import models, schemas
 from .database import get_db
 from .cache import CacheService
+from .auth import hash_password, verify_password, create_token, verify_token
 import os
 from openai import OpenAI
 
@@ -25,6 +26,69 @@ def health():
     Simple health check endpoint.
     """
     return {"status": "ok"}
+
+
+# ============ Auth Endpoints ============
+
+@router.post("/auth/register", response_model=schemas.AuthResponse)
+def register(req: schemas.RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Register a new user.
+    Email must be unique.
+    """
+    # 检查邮箱是否已存在
+    existing = db.query(models.User).filter(models.User.email == req.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # 创建新用户
+    user_id = str(uuid.uuid4())
+    hashed_pwd = hash_password(req.password)
+    
+    new_user = models.User(
+        id=uuid.UUID(user_id),
+        email=req.email,
+        password_hash=hashed_pwd,
+        role="user"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    # 生成 token
+    token = create_token(user_id)
+    
+    return schemas.AuthResponse(
+        user_id=user_id,
+        email=new_user.email,
+        token=token
+    )
+
+
+@router.post("/auth/login", response_model=schemas.AuthResponse)
+def login(req: schemas.LoginRequest, db: Session = Depends(get_db)):
+    """
+    Login with email and password.
+    Returns JWT token if successful.
+    """
+    # 查找用户
+    user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 验证密码
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # 生成 token
+    token = create_token(str(user.id))
+    
+    return schemas.AuthResponse(
+        user_id=str(user.id),
+        email=user.email,
+        token=token
+    )
+
 
 
 # ======================
@@ -186,6 +250,31 @@ def get_session(session_id: uuid.UUID, db: Session = Depends(get_db)):
     return session
 
 
+@router.put("/sessions/{session_id}", response_model=schemas.SessionResponse)
+def update_session(
+    session_id: uuid.UUID,
+    update: schemas.SessionUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a session's title.
+    """
+    session = (
+        db.query(models.Session)
+        .filter(models.Session.id == session_id)
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if update.title is not None:
+        session.title = update.title
+    
+    db.commit()
+    db.refresh(session)
+    return session
+
+
 @router.delete("/sessions/{session_id}")
 def delete_session(session_id: uuid.UUID, db: Session = Depends(get_db)):
     """
@@ -244,7 +333,8 @@ def create_message_for_session(
     db: Session = Depends(get_db),
 ):
     """
-    Create a new user message under a given session.
+    Create a new message under a given session.
+    Can be used to import messages with any role.
     """
     session = (
         db.query(models.Session)
@@ -254,9 +344,13 @@ def create_message_for_session(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Validate role
+    if body.role not in ["user", "assistant"]:
+        raise HTTPException(status_code=400, detail="Role must be 'user' or 'assistant'")
+
     msg = models.Message(
         session_id=session_id,
-        role="user",
+        role=body.role,
         content=body.content,
     )
     db.add(msg)
@@ -297,10 +391,21 @@ def rate_message(
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    if not (rating.rating in ['up', 'down']):
-        raise HTTPException(status_code=400, detail="Invalid rating value")
+    # Support both numeric (1-5) and string ('up'/'down') ratings for compatibility.
+    val = rating.rating
+    if isinstance(val, int):
+        if not (1 <= val <= 5):
+            raise HTTPException(status_code=400, detail="Invalid numeric rating. Must be 1-5")
+        # Map numeric scale to 'up'/'down' for storage (>=4 => up, <=2 => down, 3 => up)
+        mapped = 'up' if val >= 3 else 'down'
+    elif isinstance(val, str):
+        if val not in ['up', 'down']:
+            raise HTTPException(status_code=400, detail="Invalid rating. Use 'up' or 'down'")
+        mapped = val
+    else:
+        raise HTTPException(status_code=400, detail="Invalid rating type")
 
-    message.rating = rating.rating
+    message.rating = mapped
     db.commit()
     db.refresh(message)
 
@@ -326,35 +431,55 @@ def pin_message(message_id: uuid.UUID, db: Session = Depends(get_db)):
     return {"status": "toggled", "pinned": message.pinned}
 
 
+@router.post("/messages/{message_id}/delete")
+def delete_message(message_id: uuid.UUID, db: Session = Depends(get_db)):
+    """
+    Delete a message by its ID.
+    """
+    message = (
+        db.query(models.Message)
+        .filter(models.Message.id == message_id)
+        .first()
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    db.delete(message)
+    db.commit()
+    return {"status": "deleted", "id": str(message_id)}
+
+
 # ======================
 # 4. Search
 # ======================
 @router.get(
     "/sessions/{session_id}/search",
-    response_model=List[schemas.MessageResponse],
+    response_model=schemas.SearchResponse,
 )
 def search_messages(
     session_id: uuid.UUID, q: str, db: Session = Depends(get_db)
 ):
     """
-    Search messages within a session using PostgreSQL full-text search on `content`.
+    Search messages within a session for exact keyword matches.
+    Searches both user and assistant messages.
     Returns a list of matching Message objects.
     """
     if not q or not q.strip():
         # Empty or whitespace-only query returns no results.
-        return []
+        return schemas.SearchResponse(results=[])
 
+    # Use case-insensitive LIKE for exact keyword matching
+    # This will match the keyword anywhere in the content
+    search_pattern = f"%{q.strip()}%"
+    
     results_orm = (
         db.query(models.Message)
         .filter(
             models.Message.session_id == session_id,
-            text(
-                "to_tsvector('english', content) "
-                "@@ plainto_tsquery('english', :q)"
-            ),
+            models.Message.content.ilike(search_pattern)
         )
-        .params(q=q)
+        .order_by(models.Message.created_at.asc())
         .all()
     )
 
-    return results_orm
+    return schemas.SearchResponse(results=results_orm)

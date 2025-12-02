@@ -3,4 +3,7 @@ uvicorn[standard]
 sqlalchemy
 psycopg2-binary
 redis
+bcrypt
+pyjwt
+python-dotenv
 openai>=1.0.0
