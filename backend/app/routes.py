@@ -8,6 +8,12 @@ import json
 from . import models, schemas
 from .database import get_db
 from .cache import CacheService
+import os
+from openai import OpenAI
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# 如果没配 key，就用 None，后面走 echo fallback
+client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 router = APIRouter(prefix="/api/v1")
 cache_service = CacheService()
@@ -77,8 +83,27 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
             cached=True,
         )
 
-    # 2. Cache miss: generate response (stub implementation)
-    generated_content = f"Echo: {request.prompt} (This is a stub response)"
+
+    # 2. Cache miss: call LLM (OpenAI) to generate a response
+    if client is None:
+        # If no API key provided, fall back to a local echo to keep behavior deterministic
+        generated_content = f"Echo: {request.prompt} (no OPENAI_API_KEY set)"
+    else:
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "user", "content": request.prompt}
+                ],
+                max_tokens=512,
+                temperature=0.2,
+            )
+            # Extract assistant text
+            generated_content = completion.choices[0].message.content or ""
+        except Exception as e:
+            # On error, produce a safe fallback and continue
+            generated_content = f"(LLM error) {str(e)}"
+
 
     # Save user message
     user_msg = models.Message(
