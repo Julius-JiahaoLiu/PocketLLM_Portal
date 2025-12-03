@@ -4,6 +4,7 @@ from sqlalchemy import text
 from typing import List
 import uuid
 import json
+import time
 
 from . import models, schemas
 from .database import get_db
@@ -15,6 +16,16 @@ from llama_cpp import Llama
 MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/qwen2.5-1.5b-instruct-q4_k_m.gguf")
 N_THREADS = int(os.getenv("N_THREADS", "4"))
 llm = None
+
+# Global Monitoring Stats
+START_TIME = time.time()
+STATS = {
+    "total_requests": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "total_tokens": 0,
+    "total_latency_ms": 0
+}
 
 # Initialize Llama model if file exists
 if os.path.exists(MODEL_PATH):
@@ -124,6 +135,9 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
         * Save both user and assistant messages to DB.
         * Cache the assistant response.
     """
+    start_ts = time.time()
+    STATS["total_requests"] += 1
+
     # Check if session exists
     session = (
         db.query(models.Session)
@@ -138,6 +152,8 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
 
     if cached_response:
         # Cache hit: still persist the interaction to DB to keep a complete history.
+        STATS["cache_hits"] += 1
+        STATS["total_latency_ms"] += (time.time() - start_ts) * 1000
 
         # Save user message
         user_msg = models.Message(
@@ -165,6 +181,8 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
 
 
     # 2. Cache miss: call local LLM
+    STATS["cache_misses"] += 1
+    
     if llm is None:
         # If model not loaded, return error message
         generated_content = f"Error: Local LLM not loaded. Please check if {MODEL_PATH} exists."
@@ -190,9 +208,13 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
                 max_tokens=512,
                 temperature=0.2,
             )
-            print(completion)
             # Extract assistant text
             generated_content = completion["choices"][0]["message"]["content"] or ""
+            
+            # Track tokens
+            usage = completion.get("usage", {})
+            STATS["total_tokens"] += usage.get("total_tokens", 0)
+            
         except Exception as e:
             # On error, produce a safe fallback and continue
             generated_content = f"(LLM error) {str(e)}"
@@ -218,6 +240,8 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
 
     # 3. Cache the response for future identical prompts in this session (TTL: 1 hour)
     cache_service.set(request.session_id, request.prompt, generated_content, 3600)
+
+    STATS["total_latency_ms"] += (time.time() - start_ts) * 1000
 
     return schemas.ChatResponse(
         message_id=assistant_msg.id,
@@ -512,3 +536,43 @@ def search_messages(
     )
 
     return schemas.SearchResponse(results=results_orm)
+
+
+# ======================
+# 5. Admin & Monitoring
+# ======================
+@router.get("/admin/stats", response_model=schemas.SystemStats)
+def get_system_stats():
+    """
+    Retrieve system monitoring statistics.
+    """
+    uptime = time.time() - START_TIME
+    total = STATS["total_requests"]
+    hits = STATS["cache_hits"]
+    rate = (hits / total) if total > 0 else 0.0
+    avg_lat = (STATS["total_latency_ms"] / total) if total > 0 else 0.0
+    
+    return schemas.SystemStats(
+        uptime_seconds=uptime,
+        total_requests=total,
+        cache_hits=hits,
+        cache_misses=STATS["cache_misses"],
+        cache_hit_rate=rate,
+        total_tokens_generated=STATS["total_tokens"],
+        avg_latency_ms=avg_lat,
+        model_loaded=(llm is not None),
+        model_path=MODEL_PATH
+    )
+
+
+@router.post("/admin/cache/clear")
+def clear_cache():
+    """
+    Clear the entire Redis cache.
+    """
+    try:
+        cache_service.clear_all()
+        return {"status": "success", "message": "Cache cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

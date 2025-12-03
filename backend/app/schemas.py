@@ -49,6 +49,21 @@ class SessionResponse(BaseModel):
         from_attributes = True
 
 
+class SystemStats(BaseModel):
+    """
+    System monitoring statistics.
+    """
+    uptime_seconds: float
+    total_requests: int
+    cache_hits: int
+    cache_misses: int
+    cache_hit_rate: float
+    total_tokens_generated: int
+    avg_latency_ms: float
+    model_loaded: bool
+    model_path: str
+
+
 class MessageCreate(BaseModel):
     """
     Request body for creating a new message under a session.

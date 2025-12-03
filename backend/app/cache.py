@@ -43,3 +43,9 @@ class CacheService:
         key = self._generate_key(session_id, prompt)
         expiration = ttl if ttl is not None else self.default_ttl
         return self.redis_client.set(key, value, ex=expiration)
+
+    def clear_all(self):
+        """
+        Clear all keys in the current Redis database.
+        """
+        self.redis_client.flushdb()

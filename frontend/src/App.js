@@ -5,6 +5,7 @@ import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import SessionList from "./components/SessionList";
 import ChatWindow from "./components/ChatWindow";
 import LoginPage from "./components/LoginPage";
+import AdminDashboard from "./components/AdminDashboard";
 import ToastContainer from "./components/Toast";
 import { isLoggedIn, clearUser, getUserEmail } from "./utils/userManager";
 import { lightTheme, darkTheme, spacing, typography } from "./theme";
@@ -39,6 +40,10 @@ function AppLayout({ themeState }) {
             navigate("/");
             window.location.reload();
         }
+    }
+
+    function handleAdmin() {
+        navigate("/admin");
     }
 
     const toggleTheme = () => {
@@ -109,6 +114,24 @@ function AppLayout({ themeState }) {
                     )}
                     <div style={{ display: "flex", gap: spacing.sm }}>
                         <button
+                            onClick={handleAdmin}
+                            style={{
+                                flex: 1,
+                                padding: `${spacing.sm} ${spacing.md}`,
+                                backgroundColor: theme.bg.primary,
+                                color: theme.text.primary,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: "8px",
+                                cursor: "pointer",
+                                fontSize: typography.fontSize.base,
+                                fontWeight: typography.fontWeight.medium,
+                                transition: "all 0.2s ease"
+                            }}
+                            title="Admin Dashboard"
+                        >
+                            ⚙️
+                        </button>
+                        <button
                             onClick={toggleTheme}
                             style={{
                                 flex: 1,
@@ -157,6 +180,7 @@ function AppLayout({ themeState }) {
                         path="/session/:id"
                         element={<ChatPage key={chatWindowKey} theme={theme} onTitleUpdate={handleTitleUpdate} />}
                     />
+                    <Route path="/admin" element={<AdminDashboard theme={theme} />} />
                 </Routes>
             </div>
         </div>
