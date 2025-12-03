@@ -6,4 +6,4 @@ redis
 bcrypt
 pyjwt
 python-dotenv
-openai>=1.0.0
+llama-cpp-python

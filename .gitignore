@@ -7,6 +7,10 @@ venv/
 env/
 .env
 
+# Ignore large model files but keep the directory structure
+models/*.gguf
+
+
 # Node
 node_modules/
 npm-debug.log

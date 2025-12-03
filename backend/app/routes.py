@@ -10,11 +10,27 @@ from .database import get_db
 from .cache import CacheService
 from .auth import hash_password, verify_password, create_token, verify_token
 import os
-from openai import OpenAI
+from llama_cpp import Llama
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# 如果没配 key，就用 None，后面走 echo fallback
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/qwen2.5-1.5b-instruct-q4_k_m.gguf")
+N_THREADS = int(os.getenv("N_THREADS", "4"))
+llm = None
+
+# Initialize Llama model if file exists
+if os.path.exists(MODEL_PATH):
+    print(f"Loading local LLM from {MODEL_PATH} with {N_THREADS} threads...")
+    try:
+        llm = Llama(
+            model_path=MODEL_PATH,
+            n_ctx=2048,      # Context window size
+            n_threads=N_THREADS,     # Number of CPU threads to use
+            verbose=False
+        )
+        print("Model loaded successfully.")
+    except Exception as e:
+        print(f"Failed to load model: {e}")
+else:
+    print(f"Warning: Model file not found at {MODEL_PATH}")
 
 router = APIRouter(prefix="/api/v1")
 cache_service = CacheService()
@@ -148,22 +164,35 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
         )
 
 
-    # 2. Cache miss: call LLM (OpenAI) to generate a response
-    if client is None:
-        # If no API key provided, fall back to a local echo to keep behavior deterministic
-        generated_content = f"Echo: {request.prompt} (no OPENAI_API_KEY set)"
+    # 2. Cache miss: call local LLM
+    if llm is None:
+        # If model not loaded, return error message
+        generated_content = f"Error: Local LLM not loaded. Please check if {MODEL_PATH} exists."
     else:
         try:
-            completion = client.chat.completions.create(
-                model="gpt-4.1-mini",
-                messages=[
-                    {"role": "user", "content": request.prompt}
-                ],
+            # Fetch conversation history from DB to provide context
+            history_msgs = (
+                db.query(models.Message)
+                .filter(models.Message.session_id == request.session_id)
+                .order_by(models.Message.created_at.asc())
+                .all()
+            )
+            
+            # Build messages list for LLM context
+            messages_payload = [
+                {"role": msg.role, "content": msg.content} for msg in history_msgs
+            ]
+            # Add the current prompt
+            messages_payload.append({"role": "user", "content": request.prompt})
+
+            completion = llm.create_chat_completion(
+                messages=messages_payload,
                 max_tokens=512,
                 temperature=0.2,
             )
+            print(completion)
             # Extract assistant text
-            generated_content = completion.choices[0].message.content or ""
+            generated_content = completion["choices"][0]["message"]["content"] or ""
         except Exception as e:
             # On error, produce a safe fallback and continue
             generated_content = f"(LLM error) {str(e)}"

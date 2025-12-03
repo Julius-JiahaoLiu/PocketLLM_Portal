@@ -5,13 +5,16 @@
 - **Docker** and **Docker Compose** installed.
 
 1. Open a terminal in the project root directory.
-2. Run the following command to build and start all services:
+2. Download the lightweight Qwen model (Qwen2.5-1.5B-Instruct-Q4_K_M.gguf) from [Hugging Face](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/blob/main/qwen2.5-1.5b-instruct-q4_k_m.gguf).
+3. Place the downloaded file into the `models/` directory.
+4. Run the following command to build and start all services:
 
    ```bash
+   docker compose down -v
    docker compose up --build
    ```
 
-3. Wait for the containers to initialize. You will see logs indicating that Postgres, Redis, Backend, and Frontend are running.
+5. Wait for the containers to initialize. You will see logs indicating that Postgres, Redis, Backend, and Frontend are running.
 
 - **Frontend UI**: [http://localhost:3000](http://localhost:3000)
 - **Backend API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
