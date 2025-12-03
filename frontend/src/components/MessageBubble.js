@@ -1,6 +1,7 @@
 // src/components/MessageBubble.js
 
 import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { toastManager, spacing, typography } from "../theme";
 
 function MessageBubble({ message, onRate, onTogglePin, onDelete, isCached, theme, searchQuery }) {
@@ -132,12 +133,16 @@ function MessageBubble({ message, onRate, onTogglePin, onDelete, isCached, theme
 
                 <div 
                     style={{ 
-                        whiteSpace: "pre-wrap", 
                         wordBreak: "break-word",
                         lineHeight: typography.lineHeight.relaxed
                     }}
+                    className="markdown-content"
                 >
-                    {renderContent()}
+                    {searchQuery ? (
+                        renderContent()
+                    ) : (
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    )}
                 </div>
 
                 {!isUser && showActions && (
@@ -238,7 +243,7 @@ function MessageBubble({ message, onRate, onTogglePin, onDelete, isCached, theme
                                 transition: "all 0.2s ease",
                                 fontSize: typography.fontSize.base
                             }}
-                            title="Delete message"
+                            title="Delete this Q&A pair"
                         >
                             🗑️
                         </button>
@@ -271,23 +276,6 @@ function MessageBubble({ message, onRate, onTogglePin, onDelete, isCached, theme
                         >
                             📋
                         </button>
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            style={{
-                                cursor: "pointer",
-                                padding: `${spacing.xs} ${spacing.sm}`,
-                                borderRadius: "6px",
-                                border: "1px solid rgba(255,255,255,0.3)",
-                                backgroundColor: "rgba(255,255,255,0.1)",
-                                color: "#fff",
-                                fontSize: typography.fontSize.sm,
-                                transition: "all 0.2s ease"
-                            }}
-                            title="Delete message"
-                        >
-                            🗑️
-                        </button>
                     </div>
                 )}
             </div>
@@ -295,6 +283,80 @@ function MessageBubble({ message, onRate, onTogglePin, onDelete, isCached, theme
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(4px); }
                     to { opacity: 1; transform: translateY(0); }
+                }
+                
+                .markdown-content h1,
+                .markdown-content h2,
+                .markdown-content h3,
+                .markdown-content h4,
+                .markdown-content h5,
+                .markdown-content h6 {
+                    margin-top: 16px;
+                    margin-bottom: 8px;
+                    font-weight: 600;
+                }
+                
+                .markdown-content h1 { font-size: 1.5em; }
+                .markdown-content h2 { font-size: 1.3em; }
+                .markdown-content h3 { font-size: 1.1em; }
+                
+                .markdown-content p {
+                    margin: 8px 0;
+                }
+                
+                .markdown-content code {
+                    background-color: rgba(0, 0, 0, 0.05);
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.9em;
+                }
+                
+                .markdown-content pre {
+                    background-color: rgba(0, 0, 0, 0.05);
+                    padding: 12px;
+                    border-radius: 6px;
+                    overflow-x: auto;
+                    margin: 12px 0;
+                }
+                
+                .markdown-content pre code {
+                    background-color: transparent;
+                    padding: 0;
+                }
+                
+                .markdown-content ul,
+                .markdown-content ol {
+                    margin: 8px 0;
+                    padding-left: 24px;
+                }
+                
+                .markdown-content li {
+                    margin: 4px 0;
+                }
+                
+                .markdown-content blockquote {
+                    border-left: 4px solid rgba(0, 0, 0, 0.1);
+                    padding-left: 12px;
+                    margin: 12px 0;
+                    color: rgba(0, 0, 0, 0.6);
+                }
+                
+                .markdown-content a {
+                    color: #0066ff;
+                    text-decoration: none;
+                }
+                
+                .markdown-content a:hover {
+                    text-decoration: underline;
+                }
+                
+                .markdown-content strong {
+                    font-weight: 600;
+                }
+                
+                .markdown-content em {
+                    font-style: italic;
                 }
             `}</style>
         </div>

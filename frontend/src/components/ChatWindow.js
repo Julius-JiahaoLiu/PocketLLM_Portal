@@ -207,12 +207,39 @@ function ChatWindow({ sessionId, theme, onTitleUpdate }) {
         }
     }
 
-    async function handleDelete(id) {
+    async function handleDelete(assistantMessageId) {
         try {
-            await deleteMessage(id);
-            setMessages(prev => prev.filter(m => m.id !== id));
-            setSearchResults(prev => prev.filter(m => m.id !== id));
-            toastManager.notify("Message deleted", "success");
+            // Find the assistant message
+            const assistantMsg = messages.find(m => m.id === assistantMessageId);
+            if (!assistantMsg || assistantMsg.role !== "assistant") {
+                toastManager.notify("Can only delete assistant messages", "error");
+                return;
+            }
+            
+            // Find the corresponding user message (the one right before this assistant message)
+            const assistantIndex = messages.findIndex(m => m.id === assistantMessageId);
+            let userMessageId = null;
+            
+            if (assistantIndex > 0) {
+                const previousMsg = messages[assistantIndex - 1];
+                if (previousMsg.role === "user") {
+                    userMessageId = previousMsg.id;
+                }
+            }
+            
+            // Delete assistant message
+            await deleteMessage(assistantMessageId);
+            
+            // Delete corresponding user message if found
+            if (userMessageId) {
+                await deleteMessage(userMessageId);
+            }
+            
+            // Update UI
+            setMessages(prev => prev.filter(m => m.id !== assistantMessageId && m.id !== userMessageId));
+            setSearchResults(prev => prev.filter(m => m.id !== assistantMessageId && m.id !== userMessageId));
+            
+            toastManager.notify(userMessageId ? "Message pair deleted" : "Message deleted", "success");
         } catch (e) {
             toastManager.notify("Failed to delete message", "error");
         }
@@ -535,18 +562,84 @@ function ChatWindow({ sessionId, theme, onTitleUpdate }) {
             );
         }
 
-        return list.map(msg => (
-            <MessageBubble
-                key={msg.id}
-                message={msg}
-                onRate={handleRate}
-                onTogglePin={handleTogglePin}
-                onDelete={handleDelete}
-                isCached={msg.id === lastAssistantCachedId}
-                theme={theme}
-                searchQuery={mode === "search" ? searchQuery : null}
-            />
-        ));
+        return (
+            <>
+                {list.map(msg => (
+                    <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        onRate={handleRate}
+                        onTogglePin={handleTogglePin}
+                        onDelete={handleDelete}
+                        isCached={msg.id === lastAssistantCachedId}
+                        theme={theme}
+                        searchQuery={mode === "search" ? searchQuery : null}
+                    />
+                ))}
+                {sending && (
+                    <div style={{
+                        display: "flex",
+                        justifyContent: "flex-start",
+                        marginBottom: spacing.md,
+                        gap: spacing.sm
+                    }}>
+                        <div style={{
+                            maxWidth: "75%",
+                            borderRadius: "16px",
+                            padding: `${spacing.md} ${spacing.lg}`,
+                            backgroundColor: theme.assistantBg,
+                            color: theme.assistantText,
+                            fontSize: typography.fontSize.base,
+                            boxShadow: `0 2px 8px ${theme.shadow}`,
+                            border: `1px solid ${theme.border}`,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: spacing.md
+                        }}>
+                            <div className="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span style={{ color: theme.text.secondary }}>Assistant is typing...</span>
+                        </div>
+                    </div>
+                )}
+                <style>{`
+                    .typing-indicator {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    
+                    .typing-indicator span {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background-color: ${theme.primary};
+                        animation: typing 1.4s infinite;
+                    }
+                    
+                    .typing-indicator span:nth-child(2) {
+                        animation-delay: 0.2s;
+                    }
+                    
+                    .typing-indicator span:nth-child(3) {
+                        animation-delay: 0.4s;
+                    }
+                    
+                    @keyframes typing {
+                        0%, 60%, 100% {
+                            transform: translateY(0);
+                            opacity: 0.7;
+                        }
+                        30% {
+                            transform: translateY(-10px);
+                            opacity: 1;
+                        }
+                    }
+                `}</style>
+            </>
+        );
     }
     
     function renderLoadingSkeleton() {
