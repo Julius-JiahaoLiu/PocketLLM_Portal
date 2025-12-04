@@ -147,6 +147,13 @@ function ChatWindow({ sessionId, theme, onTitleUpdate }) {
                 prompt
             });
 
+            // Update the temp user message with the real ID from backend
+            setMessages(prev => prev.map(m => 
+                m.id === tempUserMessage.id 
+                    ? { ...m, id: res.user_message_id } 
+                    : m
+            ));
+
             const assistantMessage = {
                 id: res.message_id,
                 session_id: sessionId,

@@ -172,9 +172,11 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
         db.add(assistant_msg)
         db.commit()
         db.refresh(assistant_msg)
+        db.refresh(user_msg)
 
         return schemas.ChatResponse(
             message_id=assistant_msg.id,
+            user_message_id=user_msg.id,
             content=cached_response,
             cached=True,
         )
@@ -237,6 +239,7 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
     db.add(assistant_msg)
     db.commit()
     db.refresh(assistant_msg)
+    db.refresh(user_msg)
 
     # 3. Cache the response for future identical prompts in this session (TTL: 1 hour)
     cache_service.set(request.session_id, request.prompt, generated_content, 3600)
@@ -245,6 +248,7 @@ def chat(request: schemas.ChatRequest, db: Session = Depends(get_db)):
 
     return schemas.ChatResponse(
         message_id=assistant_msg.id,
+        user_message_id=user_msg.id,
         content=generated_content,
         cached=False,
     )

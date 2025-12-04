@@ -18,6 +18,7 @@ class ChatResponse(BaseModel):
     Includes generated message ID, content, and whether it was served from cache.
     """
     message_id: UUID
+    user_message_id: UUID
     content: str
     cached: bool
 
