@@ -608,7 +608,7 @@ function ChatWindow({ sessionId, theme, onTitleUpdate }) {
                                 <span></span>
                                 <span></span>
                             </div>
-                            <span style={{ color: theme.text.secondary }}>Assistant is typing...</span>
+                            <span style={{ color: theme.text.secondary }}>Assistant is thinking ...</span>
                         </div>
                     </div>
                 )}
